@@ -6,6 +6,15 @@ Built by Shrish Arunesh — CS student in Berlin passionate about cybersecurity 
 
 ---
 
+## 🌐 Live Demo
+
+| | Link |
+|---|---|
+| **Frontend** | [Click to visit](https://shashquash.github.io/secure-auth-api/frontend) |
+| **API Docs** | [Click to visit](https://secure-auth-api-clla.onrender.com/docs) |
+
+---
+
 ## 🛠️ Tech Stack
 
 - **Python** — core language
