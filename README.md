@@ -105,3 +105,38 @@ secure-auth-api/
 ## 👨‍💻 Author
 
 Shrish Arunesh
+
+---
+
+## 📚 Learning Journey
+
+This was my first backend development project, built as part of my 
+self-directed learning journey into cybersecurity and backend development. 
+Before this project I only had basic Python knowledge.
+
+Through building this project I deeply studied and now understand:
+
+- **How bcrypt hashing works** — why it's one way, why it's 
+  intentionally slow, and why that makes it resistant to brute force attacks
+- **The difference between hashing and encryption** — when to use 
+  each and why passwords should never be encrypted, only hashed
+- **How JWT tokens work** — the three parts (header, payload, signature), 
+  how they prove identity without the server remembering anything, 
+  and why expiry times matter
+- **Rate limiting vs brute force defense** — two different tools 
+  that protect different angles of the same attack
+- **What CORS is** — why browsers block cross-origin requests and 
+  how to configure an API to allow trusted frontends
+- **Full stack development** — connecting a Python FastAPI backend 
+  to a JavaScript frontend using fetch()
+- **Professional deployment** — hosting a backend on Render and 
+  a frontend on GitHub Pages with a live URL
+
+I used AI as a learning assistant throughout this project — to explain 
+concepts deeply, guide my understanding, and help debug issues. Every 
+concept was studied until I could explain it in my own words before 
+moving forward. The goal was never to copy code but to genuinely 
+understand what I was building and why.
+
+This project gave me the foundation to move into more advanced 
+security topics like Two Factor Authentication, which I built next.
