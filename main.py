@@ -34,7 +34,7 @@ app.add_middleware(
 password_hasher = CryptContext(schemes=["bcrypt"], deprecated="auto")
 
 # JWT configuration
-SECRET_KEY = "supersecretkey123formygithubviewers"
+SECRET_KEY = "supersecretkey123formygithubviewers" # WARNING: Move this to an environment variable before any real deployment
 ALGORITHM = "HS256"
 TOKEN_EXPIRY_BY_MINUTES = 30
 
@@ -48,8 +48,6 @@ login_attempts = {}
 MAX_FAILED_ATTEMPTS = 5
 
 
-# --- Our Models for Credentials ---
-
 class UserRegister(BaseModel):
     username: str
     password: str
@@ -58,8 +56,6 @@ class UserLogin(BaseModel):
     username: str
     password: str
 
-
-# --- Helper Functions ---
 
 def hash_password(password: str):
     return password_hasher.hash(password)
@@ -93,8 +89,6 @@ def get_current_user(token: str = Depends(oauth2_scheme)):
 
     return username
 
-
-# --- Endpoints ---
 
 @app.get("/")
 def read_root():

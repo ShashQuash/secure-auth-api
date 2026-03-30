@@ -201,9 +201,10 @@
 </div>
 
 <script>
+    // Base URL for all API calls
   const API_URL = "https://secure-auth-api-clla.onrender.com";
 
-    // ---- Floating Graduation Hats Background ----
+
     const canvas = document.getElementById('bgCanvas');
     const ctx = canvas.getContext('2d');
 
@@ -215,21 +216,18 @@
         canvas.height = window.innerHeight;
     });
 
-    // Mouse tracker
     let mouse = { x: canvas.width / 2, y: canvas.height / 2 };
     window.addEventListener('mousemove', e => {
         mouse.x = e.clientX;
         mouse.y = e.clientY;
     });
 
-    // Graduation hat drawing function
     function drawGradHat(x, y, size, opacity, rotation) {
         ctx.save();
         ctx.globalAlpha = opacity;
         ctx.translate(x, y);
         ctx.rotate(rotation);
 
-        // Hat board (flat top)
         ctx.fillStyle = '#ffd700';
         ctx.beginPath();
         ctx.moveTo(-size, 0);
@@ -239,7 +237,6 @@
         ctx.closePath();
         ctx.fill();
 
-        // Hat cap (square top)
         ctx.fillStyle = '#ffd700';
         ctx.fillRect(-size * 0.5, -size * 0.3, size, -size * 0.5);
 
@@ -260,7 +257,7 @@
         ctx.restore();
     }
 
-    // Hat class
+
     class GradHat {
         constructor() {
             this.init();
@@ -307,14 +304,14 @@
         }
     }
 
-    // Create hats
+
     const HAT_COUNT = 35;
     const hats = [];
     for (let i = 0; i < HAT_COUNT; i++) {
         hats.push(new GradHat());
     }
 
-    // Animation loop
+  
     let frame = 0;
     function animate() {
         ctx.clearRect(0, 0, canvas.width, canvas.height);
@@ -328,7 +325,6 @@
 
     animate();
 
-    // ---- App Logic ----
 
     function showPage(pageId) {
         document.querySelectorAll('.page').forEach(p => p.classList.remove('active'));
