@@ -1,8 +1,8 @@
 # Secure Authentication API 🔐
 
-A backend authentication system built with FastAPI, designed to demonstrate secure user authentication, JWT token management, and brute-force protection.
+A backend authentication system built with FastAPI, implementing secure user authentication, JWT token management, and brute-force protection.
 
-Built by Shrish Arunesh, CS student in Berlin, growing in cybersecurity and backend development. This project was built as a hands-on learning exercise to deeply understand authentication systems, security concepts and full stack development.
+Built by Shrish Arunesh — CS student in Berlin, focused on cybersecurity and backend development.
 
 ---
 
@@ -30,11 +30,22 @@ Built by Shrish Arunesh, CS student in Berlin, growing in cybersecurity and back
 
 - User registration with secure bcrypt password hashing
 - JWT token generation on login with 30 minute expiry
-- Protected routes - accessible only with a valid token
-- Rate limiting - max 5 login requests per minute per IP
-- Brute force defense - account lockout after 5 failed attempts
-- Interactive frontend dashboard with animated background
+- Protected routes — accessible only with a valid token
+- Rate limiting — max 5 login requests per minute per IP
+- Brute force defense — account lockout after 5 failed attempts
 - Full error handling and user feedback
+
+---
+
+## 🔐 Security Implementation
+
+**Password Hashing** — Passwords are hashed with bcrypt before storage. The original password is never saved.
+
+**JWT Authentication** — A signed JWT token is issued on login with a 30-minute expiry. Protected routes verify the token on every request.
+
+**Rate Limiting** — Login endpoint is capped at 5 requests per minute per IP using SlowAPI.
+
+**Brute Force Defense** — Accounts are locked after 5 consecutive failed login attempts.
 
 ---
 
@@ -78,18 +89,6 @@ Open `frontend/index.html` with Live Server in VS Code
 
 ---
 
-## 🔐 Security Features
-
-**Password Hashing** - Passwords are hashed using bcrypt before storage. The original password is never saved anywhere.
-
-**JWT Authentication** - After login, a signed JWT token is issued with a 30 minute expiry. Protected routes verify this token on every request.
-
-**Rate Limiting** - Login endpoint is limited to 5 requests per minute per IP address using SlowAPI.
-
-**Brute Force Defense** - Accounts are locked after 5 consecutive failed login attempts.
-
----
-
 ## 📁 Project Structure
 
 ```
@@ -103,30 +102,6 @@ secure-auth-api/
 
 ---
 
-## 🚧 More Projects Coming
-
-This is the first in a series of security-focused backend projects. More coming soon, follow the [GitHub profile](https://github.com/ShashQuash) to stay updated.
-
----
-
 ## 👨‍💻 Author
 
 Shrish Arunesh · [Portfolio](https://shashquash.github.io/portfolio) · [GitHub](https://github.com/ShashQuash)
-
----
-
-## 📚 Learning Journey
-
-Through building this project I deeply studied and now understand:
-
-- **How bcrypt hashing works** - why it's one way, why it's intentionally slow, and why that makes it resistant to brute force attacks
-- **The difference between hashing and encryption** - when to use each and why passwords should never be encrypted, only hashed
-- **How JWT tokens work** - the three parts (header, payload, signature), how they prove identity without the server remembering anything, and why expiry times matter
-- **Rate limiting vs brute force defense** - two different tools that protect different angles of the same attack
-- **What CORS is** - why browsers block cross-origin requests and how to configure an API to allow trusted frontends
-- **Full stack development** - connecting a Python FastAPI backend to a JavaScript frontend using fetch()
-- **Professional deployment** - hosting a backend on Render and a frontend on GitHub Pages with a live URL
-
-I used AI as a learning assistant throughout this project, to explain concepts deeply, guide my understanding, and help debug issues. Every concept was studied until I could explain it in my own words before moving forward. The goal was never to copy code but to genuinely understand what I was building and why.
-
-This project gave me the foundation to move into more advanced security topics like Two Factor Authentication, which I built next.
