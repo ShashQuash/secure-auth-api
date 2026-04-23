@@ -1,426 +1,479 @@
 <!DOCTYPE html>
 <html lang="en">
 <head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Secure Auth API</title>
-    <style>
-        * {
-            box-sizing: border-box;
-            margin: 0;
-            padding: 0;
-        }
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>secure-auth — authentication terminal</title>
+<link href="https://fonts.googleapis.com/css2?family=IBM+Plex+Mono:wght@300;400;500&display=swap" rel="stylesheet">
+<style>
+:root {
+  --bg: #080908;
+  --bg2: #0e100e;
+  --line: #1a1f1a;
+  --line2: #242924;
+  --text: #c8d4c8;
+  --dim: #5a6e5a;
+  --muted: #2e3a2e;
+  --green: #4a9e4a;
+  --green-bright: #6ec86e;
+  --green-dim: rgba(74,158,74,0.12);
+  --green-line: rgba(74,158,74,0.2);
+  --red: #c05050;
+  --red-dim: rgba(192,80,80,0.12);
+  --mono: 'IBM Plex Mono', monospace;
+}
 
-        body {
-            font-family: 'Segoe UI', Arial, sans-serif;
-            background: linear-gradient(135deg, #0a0a2e 0%, #1a1a4e 50%, #0a0a2e 100%);
-            display: flex;
-            justify-content: center;
-            align-items: center;
-            height: 100vh;
-            overflow: hidden;
-        }
+*, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+html, body { height: 100%; }
 
-        /* Floating hats canvas */
-        #bgCanvas {
-            position: fixed;
-            top: 0;
-            left: 0;
-            width: 100%;
-            height: 100%;
-            z-index: 0;
-        }
+body {
+  background: var(--bg);
+  color: var(--text);
+  font-family: var(--mono);
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  min-height: 100vh;
+  padding: 24px;
+}
 
-        .card {
-            position: relative;
-            z-index: 1;
-            background: rgba(255, 255, 255, 0.07);
-            backdrop-filter: blur(14px);
-            -webkit-backdrop-filter: blur(14px);
-            border: 1px solid rgba(255, 255, 255, 0.15);
-            padding: 40px;
-            border-radius: 16px;
-            width: 100%;
-            max-width: 420px;
-            box-shadow: 0 8px 32px rgba(0, 0, 0, 0.5);
-        }
+.grain {
+  position: fixed;
+  inset: 0;
+  pointer-events: none;
+  z-index: 0;
+  opacity: 0.03;
+  background-image: url("data:image/svg+xml,%3Csvg viewBox='0 0 256 256' xmlns='http://www.w3.org/2000/svg'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.9' numOctaves='4' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23n)'/%3E%3C/svg%3E");
+  background-size: 256px;
+}
 
-        h1 {
-            text-align: center;
-            color: #ffffff;
-            margin-bottom: 25px;
-            font-size: 22px;
-        }
+.scan-line {
+  position: fixed;
+  inset: 0;
+  pointer-events: none;
+  z-index: 0;
+  background: repeating-linear-gradient(
+    0deg,
+    transparent,
+    transparent 2px,
+    rgba(0,0,0,0.03) 2px,
+    rgba(0,0,0,0.03) 4px
+  );
+}
 
-        input {
-            width: 100%;
-            padding: 12px 15px;
-            margin: 7px 0;
-            border: 1px solid rgba(255,255,255,0.2);
-            border-radius: 8px;
-            font-size: 14px;
-            outline: none;
-            background: rgba(255,255,255,0.08);
-            color: #ffffff;
-            transition: border 0.2s;
-        }
+.terminal {
+  position: relative;
+  z-index: 1;
+  width: 100%;
+  max-width: 420px;
+  background: var(--bg2);
+  border: 1px solid var(--line2);
+  border-radius: 4px;
+}
 
-        input::placeholder {
-            color: rgba(255,255,255,0.4);
-        }
+.term-bar {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 10px 16px;
+  border-bottom: 1px solid var(--line);
+  background: var(--bg);
+}
 
-        input:focus {
-            border-color: #ffd700;
-            background: rgba(255,255,255,0.12);
-        }
+.term-dots {
+  display: flex;
+  gap: 6px;
+}
 
-        button {
-            width: 100%;
-            padding: 12px;
-            margin: 8px 0;
-            border: none;
-            border-radius: 8px;
-            cursor: pointer;
-            font-size: 14px;
-            font-weight: bold;
-            transition: opacity 0.2s, transform 0.1s;
-        }
+.term-dot {
+  width: 10px;
+  height: 10px;
+  border-radius: 50%;
+  background: var(--muted);
+}
 
-        button:hover {
-            opacity: 0.9;
-            transform: translateY(-1px);
-        }
+.term-title {
+  font-size: 10px;
+  color: var(--dim);
+  letter-spacing: 0.1em;
+}
 
-        button:active {
-            transform: translateY(0px);
-        }
+.term-body {
+  padding: 28px 24px;
+}
 
-        .btn-green { background-color: #4CAF50; color: white; }
-        .btn-blue { background-color: #2196F3; color: white; }
-        .btn-red { background-color: #e53935; color: white; }
+.panel { display: none; }
+.panel.active { display: block; }
 
-        .alert {
-            text-align: center;
-            padding: 10px;
-            border-radius: 8px;
-            margin: 10px 0;
-            font-size: 14px;
-            display: none;
-        }
+.panel-header {
+  margin-bottom: 24px;
+}
 
-        .alert-success { background-color: rgba(76,175,80,0.2); color: #81c784; }
-        .alert-error { background-color: rgba(229,57,53,0.2); color: #ef9a9a; }
+.panel-prompt {
+  font-size: 10px;
+  color: var(--green);
+  letter-spacing: 0.12em;
+  margin-bottom: 8px;
+}
 
-        .page { display: none; }
-        .page.active { display: block; }
+.panel-title {
+  font-size: 16px;
+  font-weight: 500;
+  color: var(--text);
+  letter-spacing: 0.04em;
+}
 
-        .footer-text {
-            text-align: center;
-            margin-top: 15px;
-            color: rgba(255,255,255,0.5);
-            font-size: 13px;
-        }
+.field {
+  margin-bottom: 14px;
+}
 
-        .footer-text span {
-            color: #ffd700;
-            cursor: pointer;
-        }
+.field-label {
+  display: block;
+  font-size: 9px;
+  letter-spacing: 0.14em;
+  color: var(--dim);
+  text-transform: uppercase;
+  margin-bottom: 6px;
+}
 
-        .footer-text span:hover {
-            text-decoration: underline;
-        }
+.field-input {
+  width: 100%;
+  background: var(--bg);
+  border: 1px solid var(--line2);
+  border-radius: 2px;
+  padding: 10px 12px;
+  color: var(--text);
+  font-family: var(--mono);
+  font-size: 13px;
+  outline: none;
+  transition: border-color 0.15s;
+}
 
-        .dashboard-box {
-            background: rgba(255,255,255,0.05);
-            border-radius: 8px;
-            padding: 20px;
-            margin: 15px 0;
-            color: #e0e0e0;
-            font-size: 14px;
-            line-height: 1.6;
-            border: 1px solid rgba(255,255,255,0.1);
-        }
+.field-input::placeholder { color: var(--muted); }
+.field-input:focus { border-color: var(--green); }
 
-        .tag {
-            display: inline-block;
-            background: rgba(255, 215, 0, 0.15);
-            color: #ffd700;
-            padding: 3px 10px;
-            border-radius: 20px;
-            font-size: 12px;
-            margin: 3px;
-            border: 1px solid rgba(255, 215, 0, 0.3);
-        }
-    </style>
+.actions {
+  margin-top: 20px;
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.btn {
+  width: 100%;
+  padding: 10px;
+  border: 1px solid var(--line2);
+  border-radius: 2px;
+  background: transparent;
+  color: var(--dim);
+  font-family: var(--mono);
+  font-size: 11px;
+  letter-spacing: 0.1em;
+  cursor: pointer;
+  transition: all 0.15s;
+}
+
+.btn:hover { border-color: var(--green-line); color: var(--green-bright); }
+.btn:disabled { opacity: 0.35; cursor: not-allowed; }
+
+.btn-primary {
+  background: var(--green-dim);
+  border-color: var(--green-line);
+  color: var(--green-bright);
+}
+
+.btn-primary:hover { background: rgba(74,158,74,0.2); }
+
+.btn-danger {
+  border-color: rgba(192,80,80,0.2);
+  color: var(--red);
+}
+
+.btn-danger:hover { background: var(--red-dim); border-color: rgba(192,80,80,0.4); }
+
+.msg {
+  display: none;
+  margin-top: 14px;
+  padding: 10px 12px;
+  border-radius: 2px;
+  font-size: 11px;
+  line-height: 1.5;
+}
+
+.msg.visible { display: block; }
+.msg.ok { background: var(--green-dim); border: 1px solid var(--green-line); color: var(--green-bright); }
+.msg.err { background: var(--red-dim); border: 1px solid rgba(192,80,80,0.25); color: var(--red); }
+
+.switch-line {
+  margin-top: 20px;
+  font-size: 10px;
+  color: var(--dim);
+  text-align: center;
+}
+
+.switch-line button {
+  background: none;
+  border: none;
+  color: var(--green);
+  font-family: var(--mono);
+  font-size: 10px;
+  cursor: pointer;
+  padding: 0;
+  text-decoration: underline;
+  text-underline-offset: 2px;
+}
+
+.switch-line button:hover { color: var(--green-bright); }
+
+.dash-rule {
+  height: 1px;
+  background: var(--line);
+  margin: 16px 0;
+}
+
+.dash-row {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 8px 0;
+}
+
+.dash-key {
+  font-size: 10px;
+  color: var(--dim);
+  letter-spacing: 0.08em;
+  width: 100px;
+  flex-shrink: 0;
+}
+
+.dash-val {
+  font-size: 11px;
+  color: var(--green-bright);
+}
+
+.status-bar {
+  position: relative;
+  z-index: 1;
+  margin-top: 16px;
+  font-size: 9px;
+  color: var(--muted);
+  letter-spacing: 0.08em;
+  text-align: center;
+}
+
+.status-bar a { color: var(--muted); text-decoration: none; }
+.status-bar a:hover { color: var(--dim); }
+</style>
 </head>
 <body>
+<div class="grain"></div>
+<div class="scan-line"></div>
 
-<canvas id="bgCanvas"></canvas>
+<div class="terminal">
+  <div class="term-bar">
+    <div class="term-dots">
+      <div class="term-dot"></div>
+      <div class="term-dot"></div>
+      <div class="term-dot"></div>
+    </div>
+    <div class="term-title">secure-auth · v1.0</div>
+    <div style="width:42px"></div>
+  </div>
 
-<div class="card">
+  <div class="term-body">
 
-    <!-- Login -->
-    <div id="loginPage" class="page active">
-        <h1>🎓 Welcome Back</h1>
-        <input type="text" id="loginUsername" placeholder="Enter your username" />
-        <input type="password" id="loginPassword" placeholder="Enter your password"
-               onkeydown="if(event.key==='Enter') handleLogin()" />
-        <button class="btn-green" onclick="handleLogin()">Login</button>
-        <div id="loginAlert" class="alert"></div>
-        <div class="footer-text">
-            New here? <span onclick="showPage('registerPage')">Create an account</span>
-        </div>
+    <div class="panel active" id="panel-login">
+      <div class="panel-header">
+        <div class="panel-prompt">$ auth --mode login</div>
+        <div class="panel-title">sign in</div>
+      </div>
+      <div class="field">
+        <label class="field-label">username</label>
+        <input class="field-input" id="login-user" type="text" placeholder="enter username" autocomplete="off" spellcheck="false" />
+      </div>
+      <div class="field">
+        <label class="field-label">password</label>
+        <input class="field-input" id="login-pass" type="password" placeholder="enter password" />
+      </div>
+      <div class="actions">
+        <button class="btn btn-primary" id="btn-login" onclick="handleLogin()">authenticate →</button>
+      </div>
+      <div class="msg" id="msg-login"></div>
+      <div class="switch-line">no account? <button onclick="show('panel-register')">register here</button></div>
     </div>
 
-    <!-- Register -->
-    <div id="registerPage" class="page">
-        <h1>📋 Create Account</h1>
-        <input type="text" id="registerUsername" placeholder="Choose a username" />
-        <input type="password" id="registerPassword" placeholder="Choose a password"
-               onkeydown="if(event.key==='Enter') handleRegister()" />
-        <button class="btn-blue" onclick="handleRegister()">Register</button>
-        <div id="registerAlert" class="alert"></div>
-        <div class="footer-text">
-            Already have an account? <span onclick="showPage('loginPage')">Login here</span>
-        </div>
+    <div class="panel" id="panel-register">
+      <div class="panel-header">
+        <div class="panel-prompt">$ auth --mode register</div>
+        <div class="panel-title">create account</div>
+      </div>
+      <div class="field">
+        <label class="field-label">username</label>
+        <input class="field-input" id="reg-user" type="text" placeholder="choose username" autocomplete="off" spellcheck="false" />
+      </div>
+      <div class="field">
+        <label class="field-label">password</label>
+        <input class="field-input" id="reg-pass" type="password" placeholder="choose password" />
+      </div>
+      <div class="actions">
+        <button class="btn btn-primary" id="btn-register" onclick="handleRegister()">create account →</button>
+      </div>
+      <div class="msg" id="msg-register"></div>
+      <div class="switch-line">have an account? <button onclick="show('panel-login')">sign in</button></div>
     </div>
 
-    <!-- Dashboard -->
-    <div id="dashboardPage" class="page">
-        <h1>🏠 Dashboard</h1>
-        <div class="dashboard-box">
-            <div id="dashboardContent"></div>
-            <br>
-            <span class="tag">✅ Authenticated</span>
-            <span class="tag">🔐 JWT Verified</span>
-            <span class="tag">⚡ FastAPI</span>
-        </div>
-        <button class="btn-red" onclick="handleLogout()">Logout</button>
+    <div class="panel" id="panel-dashboard">
+      <div class="panel-header">
+        <div class="panel-prompt">$ auth --status</div>
+        <div class="panel-title">access granted</div>
+      </div>
+      <div class="dash-rule"></div>
+      <div class="dash-row">
+        <span class="dash-key">user</span>
+        <span class="dash-val" id="dash-user">—</span>
+      </div>
+      <div class="dash-row">
+        <span class="dash-key">auth method</span>
+        <span class="dash-val">jwt · bearer token</span>
+      </div>
+      <div class="dash-row">
+        <span class="dash-key">token expiry</span>
+        <span class="dash-val">30 minutes</span>
+      </div>
+      <div class="dash-row">
+        <span class="dash-key">rate limiting</span>
+        <span class="dash-val">5 req/min · 5 attempts max</span>
+      </div>
+      <div class="dash-row">
+        <span class="dash-key">password hash</span>
+        <span class="dash-val">bcrypt</span>
+      </div>
+      <div class="dash-rule"></div>
+      <div class="actions">
+        <button class="btn btn-danger" onclick="handleLogout()">terminate session</button>
+      </div>
     </div>
 
+  </div>
+</div>
+
+<div class="status-bar">
+  built by <a href="https://shashquash.github.io/portfolio" target="_blank">shrish arunesh</a>
+  · fastapi · python · <a href="https://github.com/ShashQuash/secure-auth-api" target="_blank">source ↗</a>
 </div>
 
 <script>
-    // Base URL for all API calls
-  const API_URL = "https://secure-auth-api-clla.onrender.com";
+const API = "https://secure-auth-api-clla.onrender.com";
 
-
-    const canvas = document.getElementById('bgCanvas');
-    const ctx = canvas.getContext('2d');
-
-    canvas.width = window.innerWidth;
-    canvas.height = window.innerHeight;
-
-    window.addEventListener('resize', () => {
-        canvas.width = window.innerWidth;
-        canvas.height = window.innerHeight;
-    });
-
-    let mouse = { x: canvas.width / 2, y: canvas.height / 2 };
-    window.addEventListener('mousemove', e => {
-        mouse.x = e.clientX;
-        mouse.y = e.clientY;
-    });
-
-    function drawGradHat(x, y, size, opacity, rotation) {
-        ctx.save();
-        ctx.globalAlpha = opacity;
-        ctx.translate(x, y);
-        ctx.rotate(rotation);
-
-        ctx.fillStyle = '#ffd700';
-        ctx.beginPath();
-        ctx.moveTo(-size, 0);
-        ctx.lineTo(size, 0);
-        ctx.lineTo(size * 0.7, -size * 0.3);
-        ctx.lineTo(-size * 0.7, -size * 0.3);
-        ctx.closePath();
-        ctx.fill();
-
-        ctx.fillStyle = '#ffd700';
-        ctx.fillRect(-size * 0.5, -size * 0.3, size, -size * 0.5);
-
-        // Tassel string
-        ctx.strokeStyle = '#fff8dc';
-        ctx.lineWidth = size * 0.08;
-        ctx.beginPath();
-        ctx.moveTo(size * 0.3, -size * 0.3);
-        ctx.lineTo(size * 0.5, size * 0.2);
-        ctx.stroke();
-
-        // Tassel ball
-        ctx.fillStyle = '#fff8dc';
-        ctx.beginPath();
-        ctx.arc(size * 0.5, size * 0.25, size * 0.12, 0, Math.PI * 2);
-        ctx.fill();
-
-        ctx.restore();
-    }
-
-
-    class GradHat {
-        constructor() {
-            this.init();
-        }
-
-        init() {
-            this.x = Math.random() * canvas.width;
-            this.y = Math.random() * canvas.height;
-            this.size = Math.random() * 18 + 10;
-            this.speedX = (Math.random() - 0.5) * 0.6;
-            this.speedY = (Math.random() - 0.5) * 0.6;
-            this.rotation = Math.random() * Math.PI * 2;
-            this.rotationSpeed = (Math.random() - 0.5) * 0.015;
-            this.opacity = Math.random() * 0.4 + 0.15;
-            this.bobOffset = Math.random() * Math.PI * 2;
-            this.bobSpeed = Math.random() * 0.02 + 0.01;
-        }
-
-        update(frame) {
-            // Gentle bobbing motion
-            this.y += Math.sin(frame * this.bobSpeed + this.bobOffset) * 0.3;
-            this.x += this.speedX;
-            this.rotation += this.rotationSpeed;
-
-            // Mouse attraction — hats drift toward cursor gently
-            const dx = mouse.x - this.x;
-            const dy = mouse.y - this.y;
-            const dist = Math.sqrt(dx * dx + dy * dy);
-
-            if (dist < 180) {
-                this.x += dx * 0.008;
-                this.y += dy * 0.008;
-            }
-
-            // Wrap around screen edges
-            if (this.x < -50) this.x = canvas.width + 50;
-            if (this.x > canvas.width + 50) this.x = -50;
-            if (this.y < -50) this.y = canvas.height + 50;
-            if (this.y > canvas.height + 50) this.y = -50;
-        }
-
-        draw() {
-            drawGradHat(this.x, this.y, this.size, this.opacity, this.rotation);
-        }
-    }
-
-
-    const HAT_COUNT = 35;
-    const hats = [];
-    for (let i = 0; i < HAT_COUNT; i++) {
-        hats.push(new GradHat());
-    }
-
-  
-    let frame = 0;
-    function animate() {
-        ctx.clearRect(0, 0, canvas.width, canvas.height);
-        frame++;
-        hats.forEach(hat => {
-            hat.update(frame);
-            hat.draw();
-        });
-        requestAnimationFrame(animate);
-    }
-
-    animate();
-
-
-    function showPage(pageId) {
-        document.querySelectorAll('.page').forEach(p => p.classList.remove('active'));
-        document.getElementById(pageId).classList.add('active');
-    }
-
-    function showAlert(elementId, message, type) {
-        const el = document.getElementById(elementId);
-        el.textContent = message;
-        el.className = `alert alert-${type}`;
-        el.style.display = 'block';
-    }
-
-    async function handleRegister() {
-        const username = document.getElementById('registerUsername').value.trim();
-        const password = document.getElementById('registerPassword').value.trim();
-
-        if (!username || !password) {
-            showAlert('registerAlert', 'Please fill in all fields.', 'error');
-            return;
-        }
-
-        const response = await fetch(`${API_URL}/register`, {
-            method: 'POST',
-            headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify({ username, password })
-        });
-
-        const data = await response.json();
-
-        if (data.error) {
-            showAlert('registerAlert', data.error, 'error');
-        } else {
-            showAlert('registerAlert', 'Account created! Redirecting to login...', 'success');
-            setTimeout(() => showPage('loginPage'), 1500);
-        }
-    }
-
-async function handleLogin() {
-    const username = document.getElementById('loginUsername').value.trim();
-    const password = document.getElementById('loginPassword').value.trim();
-
-    if (!username || !password) {
-        showAlert('loginAlert', 'Please fill in all fields.', 'error');
-        return;
-    }
-
-    const response = await fetch(`${API_URL}/login`, {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ username, password })
-    });
-
-    const data = await response.json();
-
-    // Handle all error cases — wrong password, user not found, account locked
-    if (data.error) {
-        showAlert('loginAlert', data.error, 'error');
-    } else if (data.detail) {
-        showAlert('loginAlert', data.detail, 'error');
-    } else if (!data.access_token) {
-        showAlert('loginAlert', 'Something went wrong. Please try again.', 'error');
-    } else {
-        localStorage.setItem('auth_token', data.access_token);
-        loadDashboard();
-    }
+function show(panelId) {
+  document.querySelectorAll(".panel").forEach(p => p.classList.remove("active"));
+  document.getElementById(panelId).classList.add("active");
 }
 
-    async function loadDashboard() {
-        const token = localStorage.getItem('auth_token');
+function setMsg(id, text, type) {
+  const el = document.getElementById(id);
+  el.textContent = text;
+  el.className = "msg visible " + type;
+}
 
-        const response = await fetch(`${API_URL}/dashboard`, {
-            method: 'GET',
-            headers: { 'Authorization': `Bearer ${token}` }
-        });
+function clearMsg(id) {
+  const el = document.getElementById(id);
+  el.className = "msg";
+}
 
-        if (response.status === 401) {
-            showPage('loginPage');
-            return;
-        }
+function setLoading(btnId, loading) {
+  const btn = document.getElementById(btnId);
+  btn.disabled = loading;
+  btn.textContent = loading ? "processing..." : btn.dataset.label;
+}
 
-        const data = await response.json();
-        document.getElementById('dashboardContent').textContent = data.message + ' ' + data.data;
-        showPage('dashboardPage');
-    }
+document.addEventListener("DOMContentLoaded", () => {
+  document.getElementById("btn-login").dataset.label = "authenticate →";
+  document.getElementById("btn-register").dataset.label = "create account →";
 
-    function handleLogout() {
-        localStorage.removeItem('auth_token');
-        showPage('loginPage');
-    }
+  document.getElementById("login-pass").addEventListener("keydown", e => {
+    if (e.key === "Enter") handleLogin();
+  });
+  document.getElementById("reg-pass").addEventListener("keydown", e => {
+    if (e.key === "Enter") handleRegister();
+  });
 
-    window.onload = function() {
-        const token = localStorage.getItem('auth_token');
-        if (token) loadDashboard();
-    }
+  const token = localStorage.getItem("auth_token");
+  if (token) loadDashboard(token);
+});
+
+async function handleLogin() {
+  const username = document.getElementById("login-user").value.trim();
+  const password = document.getElementById("login-pass").value.trim();
+  if (!username || !password) { setMsg("msg-login", "all fields required", "err"); return; }
+
+  clearMsg("msg-login");
+  setLoading("btn-login", true);
+
+  try {
+    const res = await fetch(`${API}/login`, {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ username, password }),
+    });
+    const data = await res.json();
+    if (data.error) { setMsg("msg-login", data.error, "err"); return; }
+    if (data.detail) { setMsg("msg-login", data.detail, "err"); return; }
+    if (!data.access_token) { setMsg("msg-login", "unexpected response from server", "err"); return; }
+    localStorage.setItem("auth_token", data.access_token);
+    loadDashboard(data.access_token);
+  } catch {
+    setMsg("msg-login", "could not reach server", "err");
+  } finally {
+    setLoading("btn-login", false);
+  }
+}
+
+async function handleRegister() {
+  const username = document.getElementById("reg-user").value.trim();
+  const password = document.getElementById("reg-pass").value.trim();
+  if (!username || !password) { setMsg("msg-register", "all fields required", "err"); return; }
+
+  clearMsg("msg-register");
+  setLoading("btn-register", true);
+
+  try {
+    const res = await fetch(`${API}/register`, {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ username, password }),
+    });
+    const data = await res.json();
+    if (data.error) { setMsg("msg-register", data.error, "err"); return; }
+    setMsg("msg-register", "account created — redirecting to login", "ok");
+    setTimeout(() => show("panel-login"), 1400);
+  } catch {
+    setMsg("msg-register", "could not reach server", "err");
+  } finally {
+    setLoading("btn-register", false);
+  }
+}
+
+async function loadDashboard(token) {
+  try {
+    const res = await fetch(`${API}/dashboard`, {
+      headers: { Authorization: `Bearer ${token}` },
+    });
+    if (!res.ok) { localStorage.removeItem("auth_token"); show("panel-login"); return; }
+    const data = await res.json();
+    const username = data.message.match(/Authenticated as (.+)\./)?.[1] || "user";
+    document.getElementById("dash-user").textContent = username;
+    show("panel-dashboard");
+  } catch {
+    show("panel-login");
+  }
+}
+
+function handleLogout() {
+  localStorage.removeItem("auth_token");
+  show("panel-login");
+}
 </script>
-
 </body>
 </html>
