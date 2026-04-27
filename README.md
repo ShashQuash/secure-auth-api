@@ -2,7 +2,7 @@
 
 Backend authentication system built with FastAPI, implementing JWT token management, bcrypt password hashing, rate limiting, and brute-force protection.
 
-Built by Shrish Arunesh — CS student in Berlin, focused on cybersecurity and backend development.
+Built by Shrish Arunesh: CS student in Berlin, focused on cybersecurity and backend development.
 
 ---
 
@@ -23,17 +23,17 @@ Python · FastAPI · bcrypt · JWT · SlowAPI · HTML · CSS · JavaScript
 
 ## Security Implementation
 
-**Password Hashing** — Passwords are hashed with bcrypt before storage. The original password is never saved.
+**Password Hashing** = Passwords are hashed with bcrypt before storage. The original password is never saved.
 
-**JWT Authentication** — A signed JWT token is issued on login with a 30-minute expiry. Protected routes verify the token on every request.
+**JWT Authentication** = A signed JWT token is issued on login with a 30-minute expiry. Protected routes verify the token on every request.
 
-**Rate Limiting** — Login endpoint is capped at 5 requests per minute per IP using SlowAPI.
+**Rate Limiting** = Login endpoint is capped at 5 requests per minute per IP using SlowAPI.
 
-**Brute Force Defense** — Accounts are locked after 5 consecutive failed login attempts.
+**Brute Force Defense** = Accounts are locked after 5 consecutive failed login attempts.
 
-**Input Validation** — All fields validated server-side. Empty or malformed inputs are rejected before reaching business logic.
+**Input Validation** = All fields validated server-side. Empty or malformed inputs are rejected before reaching business logic.
 
-**Secret Key** — Loaded from environment variable. Never hardcoded in source.
+**Secret Key** = Loaded from environment variable. Never hardcoded in source.
 
 ---
 
