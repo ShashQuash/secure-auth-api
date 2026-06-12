@@ -445,7 +445,10 @@ async function handleRegister() {
       body: JSON.stringify({ username, password }),
     });
     const data = await res.json();
-    if (data.error) { setMsg("msg-register", data.error, "err"); return; }
+    if (!res.ok) {
+      setMsg("msg-register", data.detail || data.error || "registration failed", "err");
+      return;
+    }
     setMsg("msg-register", "account created — redirecting to login", "ok");
     setTimeout(() => show("panel-login"), 1400);
   } catch {

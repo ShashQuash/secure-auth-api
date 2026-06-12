@@ -19,7 +19,7 @@ app.add_exception_handler(RateLimitExceeded, _rate_limit_exceeded_handler)
 
 app.add_middleware(
     CORSMiddleware,
-    allow_origins=["*"],
+    allow_origins=["*"],  # TODO: restrict to the known frontend origin in production
     allow_credentials=False,
     allow_methods=["GET", "POST"],
     allow_headers=["Authorization", "Content-Type"],
@@ -31,11 +31,21 @@ SECRET_KEY = os.getenv("SECRET_KEY", "change-this-before-any-real-deployment")
 ALGORITHM = "HS256"
 TOKEN_EXPIRY_MINUTES = 30
 MAX_FAILED_ATTEMPTS = 5
+LOCKOUT_MINUTES = 15  # how long an account stays locked after too many failures
 
 oauth2_scheme = OAuth2PasswordBearer(tokenUrl="login")
 
+# NOTE: in-memory stores. They reset on restart and are not shared across
+# multiple worker processes. Fine for a demo; a real deployment would use a
+# database + a shared cache (e.g. Redis) for users and lockout state.
 users_db: dict = {}
+# username -> {"count": int, "locked_until": datetime | None}
 failed_attempts: dict = {}
+
+# Pre-computed hash used to equalise response timing when a username does not
+# exist. Without this, a missing user skips bcrypt (fast) while a real user
+# runs it (slow), letting an attacker enumerate valid usernames by timing.
+_DUMMY_HASH = password_hasher.hash("constant-time-placeholder")
 
 
 class UserIn(BaseModel):
@@ -64,6 +74,34 @@ def create_token(username: str) -> str:
     return jwt.encode({"sub": username, "exp": expiry}, SECRET_KEY, algorithm=ALGORITHM)
 
 
+def is_locked(username: str) -> bool:
+    """Return True if the account is currently within an active lockout window.
+    Expired lockouts are cleared here so the user can try again afterwards."""
+    record = failed_attempts.get(username)
+    if not record:
+        return False
+    locked_until = record.get("locked_until")
+    if locked_until is None:
+        return False
+    if datetime.now(timezone.utc) < locked_until:
+        return True
+    # Lockout window has passed — reset so a correct password works again.
+    failed_attempts.pop(username, None)
+    return False
+
+
+def register_failure(username: str) -> None:
+    record = failed_attempts.get(username, {"count": 0, "locked_until": None})
+    record["count"] += 1
+    if record["count"] >= MAX_FAILED_ATTEMPTS:
+        record["locked_until"] = datetime.now(timezone.utc) + timedelta(minutes=LOCKOUT_MINUTES)
+    failed_attempts[username] = record
+
+
+def reset_failures(username: str) -> None:
+    failed_attempts.pop(username, None)
+
+
 def get_current_user(token: str = Depends(oauth2_scheme)) -> str:
     credentials_error = HTTPException(
         status_code=status.HTTP_401_UNAUTHORIZED,
@@ -85,10 +123,13 @@ def root():
     return {"status": "running", "version": "1.0.0"}
 
 
-@app.post("/register")
+@app.post("/register", status_code=status.HTTP_201_CREATED)
 def register(user: UserIn):
     if user.username in users_db:
-        return {"error": "Username already taken"}
+        raise HTTPException(
+            status_code=status.HTTP_409_CONFLICT,
+            detail="Username already taken",
+        )
     users_db[user.username] = hash_password(user.password)
     return {"message": f"Account created for '{user.username}'"}
 
@@ -96,23 +137,36 @@ def register(user: UserIn):
 @app.post("/login")
 @limiter.limit("5/minute")
 def login(request: Request, user: UserIn):
-    if failed_attempts.get(user.username, 0) >= MAX_FAILED_ATTEMPTS:
-        raise HTTPException(
-            status_code=status.HTTP_403_FORBIDDEN,
-            detail="Account locked — too many failed attempts.",
-        )
-    if user.username not in users_db:
-        return {"error": "User not found"}
+    # Single generic error for every failure path so the response never reveals
+    # whether the username exists or the password was wrong (anti-enumeration).
+    invalid_credentials = HTTPException(
+        status_code=status.HTTP_401_UNAUTHORIZED,
+        detail="Invalid username or password",
+    )
 
-    if not verify_password(user.password, users_db[user.username]):
-        failed_attempts[user.username] = failed_attempts.get(user.username, 0) + 1
-        remaining = MAX_FAILED_ATTEMPTS - failed_attempts[user.username]
+    if is_locked(user.username):
+        # NOTE: lockout is keyed on username, so a malicious caller can lock a
+        # known victim for LOCKOUT_MINUTES (availability vs. credential-stuffing
+        # trade-off). The per-IP SlowAPI limit above blunts a single attacker.
+        # Production options: key on IP+username, exponential backoff, or CAPTCHA.
         raise HTTPException(
-            status_code=status.HTTP_401_UNAUTHORIZED,
-            detail=f"Wrong password. {remaining} attempt{'s' if remaining != 1 else ''} remaining.",
+            status_code=status.HTTP_429_TOO_MANY_REQUESTS,
+            detail="Account temporarily locked due to repeated failed logins. Try again later.",
         )
 
-    failed_attempts[user.username] = 0
+    stored_hash = users_db.get(user.username)
+
+    if stored_hash is None:
+        # Burn the same time a real bcrypt check would, then fail generically.
+        verify_password(user.password, _DUMMY_HASH)
+        register_failure(user.username)
+        raise invalid_credentials
+
+    if not verify_password(user.password, stored_hash):
+        register_failure(user.username)
+        raise invalid_credentials
+
+    reset_failures(user.username)
     return {
         "access_token": create_token(user.username),
         "token_type": "bearer",
