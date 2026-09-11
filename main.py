@@ -60,6 +60,19 @@ class UserIn(BaseModel):
             raise ValueError("field cannot be empty")
         return v
 
+    @field_validator("password")
+    @classmethod
+    def bcrypt_safe_length(cls, v: str) -> str:
+        # bcrypt reads at most 72 BYTES and silently ignores everything after
+        # that. Without an upper bound a long password is accepted but only
+        # partly verified, so two different passwords sharing a 72-byte prefix
+        # both work. Count bytes, not characters: non-ASCII is multi-byte.
+        if len(v) < 8:
+            raise ValueError("password must be at least 8 characters")
+        if len(v.encode("utf-8")) > 72:
+            raise ValueError("password must be at most 72 bytes")
+        return v
+
 
 def hash_password(password: str) -> str:
     return password_hasher.hash(password)
@@ -124,7 +137,8 @@ def root():
 
 
 @app.post("/register", status_code=status.HTTP_201_CREATED)
-def register(user: UserIn):
+@limiter.limit("10/minute")
+def register(request: Request, user: UserIn):
     if user.username in users_db:
         raise HTTPException(
             status_code=status.HTTP_409_CONFLICT,
