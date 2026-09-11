@@ -4,7 +4,8 @@ from datetime import datetime, timedelta, timezone
 from fastapi import FastAPI, Depends, HTTPException, Request, status
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.security import OAuth2PasswordBearer
-from jose import JWTError, jwt
+import jwt
+from jwt import PyJWTError
 from passlib.context import CryptContext
 from pydantic import BaseModel, field_validator
 from slowapi import Limiter, _rate_limit_exceeded_handler
@@ -126,7 +127,7 @@ def get_current_user(token: str = Depends(oauth2_scheme)) -> str:
         username: str = payload.get("sub")
         if not username or username not in users_db:
             raise credentials_error
-    except JWTError:
+    except PyJWTError:
         raise credentials_error
     return username
 

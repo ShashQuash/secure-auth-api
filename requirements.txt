@@ -1,12 +1,11 @@
 # secure-auth-api
 #
-# Fully pinned, including transitive dependencies, so a old deploy
+# Fully pinned, including transitive dependencies, so a deploy
 # now installs what was actually tested. Resolved and verified on Python 3.11.
 #
 # Regenerate with:
 #   python -m venv venv && source venv/bin/activate
-#   pip install fastapi uvicorn passlib "bcrypt==4.0.1" \
-#               "python-jose[cryptography]" slowapi "pydantic>=2.0"
+#   pip install fastapi uvicorn passlib "bcrypt==4.0.1" pyjwt slowapi "pydantic>=2.0"
 #   pip freeze > requirements.txt
 
 # --- direct ---
@@ -15,7 +14,16 @@ uvicorn==0.52.4
 pydantic==2.13.5
 slowapi==0.1.10
 passlib==1.7.4
-python-jose==3.5.0
+
+# PyJWT, not python-jose. python-jose pulled in ecdsa, which carries
+# CVE-2024-23342 (Minerva timing attack on P-256). It has no fix and the ecdsa
+# maintainers consider side-channel attacks out of scope, so pip-audit failed
+# CI on every push with nothing to upgrade to. This service signs with HS256,
+# which is HMAC and never touches ECDSA, so the advisory was unreachable, but
+# an unfixable permanent CI failure is not worth carrying. PyJWT has zero
+# dependencies and removes python-jose, ecdsa, rsa, pyasn1, six, cryptography,
+# cffi and pycparser from the tree.
+PyJWT==2.13.0
 
 # bcrypt is held at 4.0.1 on purpose. passlib 1.7.4 runs an internal self-test
 # on first use that hashes a password longer than 72 bytes. bcrypt 4.1 and
@@ -29,20 +37,13 @@ bcrypt==4.0.1
 annotated-doc==0.0.5
 annotated-types==0.8.0
 anyio==4.15.1
-cffi==2.1.1
 click==8.5.0
-cryptography==50.0.1
 Deprecated==1.3.1
-ecdsa==0.19.2
 h11==0.16.0
 idna==3.19
 limits==5.8.0
 packaging==26.3
-pyasn1==0.6.4
-pycparser==3.0
 pydantic_core==2.46.5
-rsa==4.9.1
-six==1.17.0
 starlette==1.6.0
 typing-inspection==0.4.4
 typing_extensions==4.16.0
