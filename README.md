@@ -13,7 +13,7 @@ Heads up: the backend sleeps on a free tier, so the first request after a quiet 
 
 ## Stack
 
-Python, FastAPI, bcrypt (via passlib), python-jose for JWT, SlowAPI for rate limiting, and a plain HTML/CSS/JS frontend.
+Python, FastAPI, bcrypt (via passlib), PyJWT for JWT, SlowAPI for rate limiting, and a plain HTML/CSS/JS frontend.
 
 ## What it does
 
@@ -52,14 +52,6 @@ I'd rather be upfront about the gaps than pretend they aren't there:
 - CORS is still `allow_origins=["*"]`. Low risk here because credentials aren't allowed and auth is a Bearer header rather than a cookie, but it should be pinned to the known frontend origin.
 - The frontend keeps the JWT in `localStorage`, which is readable by JavaScript and so exposed if there's an XSS hole. An HttpOnly cookie would be safer; localStorage is just simpler for a demo.
 - No refresh tokens and no way to revoke a token early. Once issued, it's valid until it expires.
-
-### Dependency debt
-
-Worth stating separately, because these are known and not yet dealt with:
-
-- `python-jose` is effectively unmaintained and has a published algorithm confusion issue. Every `decode` call here passes `algorithms=[ALGORITHM]` explicitly, which is the correct mitigation for that specific attack, but the library still needs replacing with PyJWT.
-- `passlib` is unmaintained too. `bcrypt` is pinned to `4.0.1` because passlib breaks against bcrypt 4.1 and later. That pin works, and it also means this is stuck on a 2022 bcrypt until passlib is dropped in favour of the `bcrypt` library directly.
-- Nothing else in `requirements.txt` is version pinned, so builds aren't reproducible and what's deployed drifts from what was tested.
 
 ## Running it locally
 
