@@ -53,6 +53,12 @@ I'd rather be upfront about the gaps than pretend they aren't there:
 - The frontend keeps the JWT in `localStorage`, which is readable by JavaScript and so exposed if there's an XSS hole. An HttpOnly cookie would be safer; localStorage is just simpler for a demo.
 - No refresh tokens and no way to revoke a token early. Once issued, it's valid until it expires.
 
+### Dependency notes
+
+- JWTs use `PyJWT`. The project started on `python-jose`, which is effectively unmaintained and pulled in a dependency with a vulnerability that has no fix, so I swapped it out.
+- `passlib` is unmaintained. `bcrypt` is pinned to `4.0.1` because passlib breaks against bcrypt 4.1 and later. The real fix is dropping passlib and calling the `bcrypt` library directly.
+- Everything in `requirements.txt` is version pinned, including transitive dependencies, so a deploy installs what was actually tested.
+
 ## Running it locally
 
 ```bash
