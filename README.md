@@ -76,7 +76,7 @@ API runs at `http://127.0.0.1:8000`, docs at `/docs`. Open `frontend/index.html`
 Set a real signing key before deploying anywhere:
 
 ```bash
-$env:SECRET_KEY = "your-long-random-secret"   # PowerShell
+$env:SECRET_KEY = "<your-long-random-secret>"   # PowerShell
 export SECRET_KEY="your-long-random-secret"    # macOS / Linux
 ```
 
