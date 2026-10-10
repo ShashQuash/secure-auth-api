@@ -77,7 +77,7 @@ Set a real signing key before deploying anywhere:
 
 ```bash
 $env:SECRET_KEY = "<your-long-random-secret>"   # PowerShell
-export SECRET_KEY="your-long-random-secret"    # macOS / Linux
+export SECRET_KEY="<your-long-random-secret>"    # macOS / Linux
 ```
 
 ## Layout
